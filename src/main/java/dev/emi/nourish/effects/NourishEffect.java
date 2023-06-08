@@ -9,7 +9,7 @@ import dev.emi.nourish.NourishComponent;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registries;
 
 public class NourishEffect {
 	public List<NourishEffectCondition> conditions = new ArrayList<NourishEffectCondition>();
@@ -18,7 +18,7 @@ public class NourishEffect {
 
 	public void apply(PlayerEntity player) {
 		for (Pair<Identifier, Integer> effect: status_effects) {
-			player.addStatusEffect(new NourishStatusEffectInstance(Registry.STATUS_EFFECT.get(effect.getLeft()), 100, effect.getRight()));
+			player.addStatusEffect(new NourishStatusEffectInstance(Registries.STATUS_EFFECT.get(effect.getLeft()), 100, effect.getRight()));
 		}
 	}
 

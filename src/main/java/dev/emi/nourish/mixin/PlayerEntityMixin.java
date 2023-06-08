@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import dev.emi.nourish.NourishComponent;
-import dev.emi.nourish.NourishMain;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
@@ -42,7 +41,7 @@ public class PlayerEntityMixin {
 		if (ticks >= 20) {
 			ticks = 0;
 			PlayerEntity player = (PlayerEntity) (Object) this;
-			if (!player.world.isClient && !player.isCreative()) {
+			if (!player.getWorld().isClient && !player.isCreative()) {
 				NourishComponent comp = NourishHolder.NOURISH.get(player);
 				comp.decay();
 			}

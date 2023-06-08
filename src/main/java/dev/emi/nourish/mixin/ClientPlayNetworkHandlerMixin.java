@@ -11,11 +11,13 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.network.packet.s2c.play.EntityStatusEffectS2CPacket;
 
+import java.util.Optional;
+
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
 
 	@Redirect(method = "onEntityStatusEffect", at = @At(value = "NEW", args = "class=net/minecraft/entity/effect/StatusEffectInstance"))
-	public StatusEffectInstance onEntityPotionEffect(StatusEffect effect, int i, int j, boolean a, boolean b, boolean c, EntityStatusEffectS2CPacket packet) {
+	public StatusEffectInstance onEntityPotionEffect(StatusEffect effect, int i, int j, boolean a, boolean b, boolean c, StatusEffectInstance hiddenEffect, Optional factorCalculationData, EntityStatusEffectS2CPacket packet) {
 		if (((EntityPotionEffectS2CPacketWrapper) packet).getNourishFlag()) {
 			return new NourishStatusEffectInstance(effect, i, j);
 		}

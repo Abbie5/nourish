@@ -2,9 +2,7 @@ package dev.emi.nourish;
 
 import dev.emi.nourish.groups.NourishGroup;
 import dev.emi.nourish.profile.NourishProfile;
-import dev.onyxstudios.cca.api.v3.component.Component;
 import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
-import dev.onyxstudios.cca.api.v3.entity.PlayerComponent;
 import net.minecraft.item.ItemStack;
 
 public interface NourishComponent extends AutoSyncedComponent {

@@ -9,6 +9,9 @@ import com.google.common.collect.Ordering;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import dev.emi.nourish.NourishHolder;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.registry.Registries;
+import net.minecraft.text.OrderedText;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import dev.emi.nourish.NourishComponent;
-import dev.emi.nourish.NourishMain;
 import dev.emi.nourish.PlayerNourishComponent;
 import dev.emi.nourish.client.NourishScreen;
 import dev.emi.nourish.effects.NourishEffect;
@@ -33,7 +35,6 @@ import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.screen.recipebook.RecipeBookProvider;
 import net.minecraft.client.gui.screen.recipebook.RecipeBookWidget;
 import net.minecraft.client.gui.widget.TexturedButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -41,12 +42,9 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.PlayerScreenHandler;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin extends AbstractInventoryScreen<PlayerScreenHandler> implements RecipeBookProvider {
@@ -69,8 +67,8 @@ public abstract class InventoryScreenMixin extends AbstractInventoryScreen<Playe
 	}
 
 	@Inject(at = @At("TAIL"), method = "render")
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta, CallbackInfo info) {
-		if (this.client.player.currentScreenHandler.getCursorStack().isEmpty() && (this.focusedSlot == null || !this.focusedSlot.hasStack())) {
+	public void render(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
+		if (this.getScreenHandler().getCursorStack().isEmpty() && (this.focusedSlot == null || !this.focusedSlot.hasStack())) {
 			if (!recipeBook.isOpen()) {
 				if (mouseX < this.x - 8 && mouseX > this.x - 122 && mouseY > this.y && mouseY < this.height - this.y) {
 					Collection<StatusEffectInstance> collection = this.client.player.getStatusEffects();
@@ -90,7 +88,7 @@ public abstract class InventoryScreenMixin extends AbstractInventoryScreen<Playe
 								for (NourishEffect eff: comp.getProfile().effects) {
 									if (eff.test(comp)) {
 										for (Pair<Identifier, Integer> status : eff.status_effects) {
-											if (Registry.STATUS_EFFECT.get(status.getLeft()) == effect.getEffectType() && status.getRight() == effect.getAmplifier()) {
+											if (Registries.STATUS_EFFECT.get(status.getLeft()) == effect.getEffectType() && status.getRight() == effect.getAmplifier()) {
 												nourishEffects.add(eff);
 											}
 										}
@@ -101,25 +99,25 @@ public abstract class InventoryScreenMixin extends AbstractInventoryScreen<Playe
 									boolean first = true;
 									for (NourishEffect eff: nourishEffects) {
 										if (!first) {
-											lines.add(new LiteralText(""));
+											lines.add(Text.literal(""));
 										}
 										first = false;
 										addCause(lines, eff);
 									}
-									this.renderTooltip(matrices, lines, mouseX, mouseY);
+									this.setTooltip(lines.stream().map(Text::asOrderedText).toList());
 								}
 							});
 						}
 					}
-				} else if (nourishWidget.isHovered()) {
-					this.renderTooltip(matrices, getAttributesTooltip(), mouseX, mouseY);
+				} else if (nourishWidget.isSelected()) {
+					this.setTooltip(getAttributesTooltip());
 				}
 			}
 		}
 	}
 
 	@Unique
-	private List<Text> getAttributesTooltip() {
+	private List<OrderedText> getAttributesTooltip() {
 		List<Text> list = new ArrayList<Text>();
 		NourishComponent comp = NourishHolder.NOURISH.get(client.player);
 		boolean first = true;
@@ -127,13 +125,13 @@ public abstract class InventoryScreenMixin extends AbstractInventoryScreen<Playe
 			if (eff.test(comp)) {
 				if (eff.attributes.size() > 0) {
 					if (!first) {
-						list.add(new LiteralText(""));
+						list.add(Text.literal(""));
 					}
 					first = false;
 					addCause(list, eff);
 				}
 				for (NourishAttribute attr : eff.attributes) {
-					EntityAttribute attribute = Registry.ATTRIBUTE.get(attr.id);
+					EntityAttribute attribute = Registries.ATTRIBUTE.get(attr.id);
 					EntityAttributeModifier modifier = new EntityAttributeModifier(PlayerNourishComponent.ATTRIBUTE_UUID,
 						"nourish", attr.amount, attr.operation);
 					double v = modifier.getValue();
@@ -145,48 +143,48 @@ public abstract class InventoryScreenMixin extends AbstractInventoryScreen<Playe
 					} else {
 						v *= 100.0D;
 					}
-					Text text = new TranslatableText(attribute.getTranslationKey());
+					Text text = Text.translatable(attribute.getTranslationKey());
 					if (v > 0) {
-						list.add(new TranslatableText("attribute.modifier.plus." + modifier.getOperation().getId(),
+						list.add(Text.translatable("attribute.modifier.plus." + modifier.getOperation().getId(),
 							ItemStack.MODIFIER_FORMAT.format(v), text).formatted(Formatting.BLUE));
 					} else {
-						list.add(new TranslatableText("attribute.modifier.take." + modifier.getOperation().getId(),
+						list.add(Text.translatable("attribute.modifier.take." + modifier.getOperation().getId(),
 							ItemStack.MODIFIER_FORMAT.format(-v), text).formatted(Formatting.RED));
 					}
 				}
 			}
 		}
-		return list;
+		return list.stream().map(Text::asOrderedText).toList();
 	}
 
 	@Unique
 	private void addCause(List<Text> lines, NourishEffect eff) {
-		lines.add(new TranslatableText("nourish.effect.caused"));
+		lines.add(Text.translatable("nourish.effect.caused"));
 		for (NourishEffectCondition condition: eff.conditions) {
 			List<String> groups = Lists.newArrayList();
 			for (NourishGroup group: condition.groups) {
-				groups.add(new TranslatableText("nourish.group." + group.name).getString());
+				groups.add(Text.translatable("nourish.group." + group.name).getString());
 			}
-			Text text = new LiteralText(String.join(", ", groups));
+			Text text = Text.literal(String.join(", ", groups));
 			String root = "nourish.effect.cause.multiple";
 			if (groups.size() == 1) {
 				root = "nourish.effect.cause.single";
 			}
 			if (condition.above != -1.0F) {
 				if (condition.below != 2.0F) {
-					lines.add(new TranslatableText(root + ".above_and_below", text,
+					lines.add(Text.translatable(root + ".above_and_below", text,
 						(int) (condition.above * 100), (int) (condition.below * 100)));
 				} else {
-					lines.add(new TranslatableText(root + ".above", text, (int) (condition.above * 100)));
+					lines.add(Text.translatable(root + ".above", text, (int) (condition.above * 100)));
 				}
 			} else {
-				lines.add(new TranslatableText(root + ".below", text, (int) (condition.below * 100)));
+				lines.add(Text.translatable(root + ".below", text, (int) (condition.below * 100)));
 			}
 		}
 	}
 
 	@Inject(at = @At("TAIL"), method = "handledScreenTick")
 	public void tick(CallbackInfo info) {
-		nourishWidget.setPos(this.x + this.backgroundWidth - 9 - 5, this.y + 5);// :tiny_potato:
+		nourishWidget.setPosition(this.x + this.backgroundWidth - 9 - 5, this.y + 5);// :tiny_potato:
 	}
 }
